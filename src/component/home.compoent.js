@@ -11,21 +11,24 @@ import {
     Platform
 } from 'react-native';
 import { getTotal, getAllCountry, getFlagOfCountry, getSelectedCountry, getAllDataForAll, getCountryDataApi } from '../api/api';
-import { COLOR, FONT_SIZE, FONT_WEIGHT } from '../constants/global.constant';
+import { COLOR, FONT_SIZE, FONT_WEIGHT, COUNTRY } from '../constants/global.constant';
 import { dropDownIcon, closeIcon } from '../constants/image.constant';
 import {
     LineChart,
 } from 'react-native-chart-kit'
 import moment from 'moment';
-import { ScrollView } from 'react-native-gesture-handler';
+import { ScrollView, TextInput } from 'react-native-gesture-handler';
 
 
 function Item({ title, onSelect }) {
     return (
+        <View>
 
-        <TouchableOpacity onPress={() => onSelect(title)} style={{ marginRight: 60 }}>
-            <Text style={{ paddingLeft: 40, marginTop: 40 }}>{title}</Text>
-        </TouchableOpacity>
+            <TouchableOpacity onPress={() => onSelect(title)} style={{ marginRight: 60 }}>
+                <Text style={{ paddingLeft: 40, marginTop: 40 }}>{title}</Text>
+            </TouchableOpacity>
+        </View>
+
     );
 }
 
@@ -46,10 +49,11 @@ class HomeComponent extends React.Component {
             totalData: {
                 confirmed: "2323408", recovered: "595157", critical: "55218", deaths: "159699"
             },
+            originalCountryList: [],
             countryData: {
-                confirmed: "23408", recovered: "5", critical: "518", deaths: "699"
+                confirmed: "--", recovered: "--", critical: "--", deaths: "--"
             },
-            countryList: [],
+            countryList: COUNTRY,
             slectedCountry: 'india',
             slectedCountryCode: 'in',
             modalVisible: false,
@@ -73,22 +77,17 @@ class HomeComponent extends React.Component {
 
     getCountryData = async (name) => {
         const response = await getSelectedCountry(name)
-        console.log(response)
         this.setState({
             countryData: response
-        }, () => {
-            console.log(this.state.countryData)
         })
     }
 
     getAllDataForDate = async () => {
         const temp = []
-        const now = moment().format("YYYY-MM-DD");
         const tempDate = []
         for (let i = 2; i < 6; i++) {
             tempDate.unshift(moment().subtract(i, 'days').format("YYYY-MM-DD"))
             const response = await getAllDataForAll(moment().subtract(i, 'days').format("YYYY-MM-DD"))
-            console.log("12", response)
             temp.unshift(parseInt(response))
         }
         this.setState({
@@ -100,7 +99,7 @@ class HomeComponent extends React.Component {
                     },
                 ],
             }
-        }, () => console.log(this.state.graphDataAll))
+        })
     }
 
     getCountryDataForDate = async () => {
@@ -110,7 +109,6 @@ class HomeComponent extends React.Component {
         for (let i = 2; i < 6; i++) {
             tempDate.unshift(moment().subtract(i, 'days').format("YYYY-MM-DD"))
             const response = await getCountryDataApi(moment().subtract(i, 'days').format("YYYY-MM-DD"), this.state.slectedCountry)
-            console.log("1", response)
             temp.unshift(parseInt(response))
         }
         this.setState({
@@ -122,18 +120,25 @@ class HomeComponent extends React.Component {
                     },
                 ],
             }
-        }, () => console.log('country', this.state.graphDataCountry))
+        })
     }
 
     componentDidMount = async () => {
+
         this.getGlobalData()
         this.getCountryData(this.state.slectedCountry.toLowerCase())
         this.getAllDataForDate()
         this.getCountryDataForDate()
-        const countryList = await getAllCountry()
+        const countryList = []
+        const countryCode = []
+        COUNTRY.map(item => {
+            countryList.push(item.name);
+            countryCode.push(item.code)
+        })
         this.setState({
-            countryList: Object.values(countryList),
-            countryCodeList: Object.keys(countryList),
+            countryList: countryList,
+            originalCountryList: countryList,
+            countryCodeList: countryCode,
         })
     }
 
@@ -150,23 +155,24 @@ class HomeComponent extends React.Component {
     onSlectCountry = (name) => {
         this.getCountryData(name.toLowerCase())
         const index = this.state.countryList.indexOf(name);
-        const countryCode = this.state.countryCodeList[index]
+        const countryCode = COUNTRY.filter((item) => {
+            if (item.name == name) {
+                return item.code
+            }
+        })
+        console.log(countryCode)
         this.setState({
             slectedCountry: name,
             modalVisible: false,
-            slectedCountryCode: countryCode,
-            //graphDataCountry: {}
+            slectedCountryCode: countryCode[0].code,
         }, () => {
             this.getCountryDataForDate()
         })
     }
 
     changeLocation(value) {
-        console.log(value)
         this.setState({
             active: value
-        }, () => {
-            console.log(this.state.active)
         })
     }
 
@@ -174,11 +180,23 @@ class HomeComponent extends React.Component {
         return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     }
 
+    searchCountry = (value) => {
+        console.log(value)
+        data = this.state.countryList;
+        value = value.trim().toLowerCase()
+
+        data = data.filter(l => {
+            return l.toLowerCase().match(value);
+        });
+        this.setState({
+            countryList: data
+        })
+    }
+
 
 
     render() {
         const { modalVisible, slectedCountry, countryList, active, totalData, countryData } = this.state;
-        console.log('inside', this.state.graphDataAll)
         return (
 
             <>
@@ -206,19 +224,20 @@ class HomeComponent extends React.Component {
                             {active === 'global' ?
                                 <View>
                                     <View style={{ flexDirection: 'row', marginLeft: 20, marginRight: 20, borderRadius: 30, alignItems: 'center', height: 100, justifyContent: 'space-between' }}>
+                                        <View style={{ width: "47%", height: 100, borderRadius: 10, backgroundColor: COLOR.GREEN, marginTop: 30, justifyContent: 'space-between' }}>
+                                            <Text style={{ color: 'white', fontSize: FONT_SIZE.FONT_FOUR, fontWeight: 'bold', marginTop: 10, marginLeft: 10 }}>Recovered</Text>
+                                            <Text style={{ color: 'white', fontSize: FONT_SIZE.FONT_THREE, fontWeight: 'bold', marginLeft: 10, marginBottom: 10 }}>{this.numberWithCommas(totalData.recovered)}</Text>
+                                        </View>
                                         <View style={{ width: "47%", height: 100, borderRadius: 10, backgroundColor: COLOR.YELLOW, marginTop: 30, justifyContent: 'space-between' }}>
                                             <Text style={{ color: 'white', fontSize: FONT_SIZE.FONT_FOUR, fontWeight: 'bold', marginTop: 10, marginLeft: 10 }}>Affected</Text>
                                             <Text style={{ color: 'white', fontSize: FONT_SIZE.FONT_THREE, fontWeight: 'bold', marginLeft: 10, marginBottom: 10 }}>{this.numberWithCommas(totalData.confirmed)}</Text>
-                                        </View>
-                                        <View style={{ width: "47%", height: 100, borderRadius: 10, backgroundColor: COLOR.RED, marginTop: 30, justifyContent: 'space-between' }}>
-                                            <Text style={{ color: 'white', fontSize: FONT_SIZE.FONT_FOUR, fontWeight: 'bold', marginTop: 10, marginLeft: 10 }}>Death</Text>
-                                            <Text style={{ color: 'white', fontSize: FONT_SIZE.FONT_THREE, fontWeight: 'bold', marginLeft: 10, marginBottom: 10 }}>{this.numberWithCommas(totalData.deaths)}</Text>
+
                                         </View>
                                     </View>
                                     <View style={{ marginTop: 30, flexDirection: 'row', marginLeft: 20, marginRight: 20, borderRadius: 30, alignItems: 'center', height: 100, justifyContent: 'space-between' }}>
-                                        <View style={{ width: "30%", height: 100, borderRadius: 10, backgroundColor: COLOR.GREEN, marginTop: 30, justifyContent: 'space-between' }}>
-                                            <Text style={{ color: 'white', fontSize: FONT_SIZE.FONT_FIVE, fontWeight: 'bold', marginTop: 10, marginLeft: 10 }}>Recovered</Text>
-                                            <Text style={{ color: 'white', fontSize: FONT_SIZE.FONT_FOUR, fontWeight: 'bold', marginLeft: 10, marginBottom: 10 }}>{this.numberWithCommas(totalData.recovered)}</Text>
+                                        <View style={{ width: "30%", height: 100, borderRadius: 10, backgroundColor: COLOR.RED, marginTop: 30, justifyContent: 'space-between' }}>
+                                            <Text style={{ color: 'white', fontSize: FONT_SIZE.FONT_FIVE, fontWeight: 'bold', marginTop: 10, marginLeft: 10 }}>Death</Text>
+                                            <Text style={{ color: 'white', fontSize: FONT_SIZE.FONT_FOUR, fontWeight: 'bold', marginLeft: 10, marginBottom: 10 }}>{this.numberWithCommas(totalData.deaths)}</Text>
                                         </View>
                                         <View style={{ width: "30%", height: 100, borderRadius: 10, backgroundColor: COLOR.BLUE, marginTop: 30, justifyContent: 'space-between' }}>
                                             <Text style={{ color: 'white', fontSize: FONT_SIZE.FONT_FIVE, fontWeight: 'bold', marginTop: 10, marginLeft: 10 }}>Active</Text>
@@ -233,19 +252,20 @@ class HomeComponent extends React.Component {
                                 :
                                 <View>
                                     <View style={{ flexDirection: 'row', marginLeft: 20, marginRight: 20, borderRadius: 30, alignItems: 'center', height: 100, justifyContent: 'space-between' }}>
+                                        <View style={{ width: "47%", height: 100, borderRadius: 10, backgroundColor: COLOR.GREEN, marginTop: 30, justifyContent: 'space-between' }}>
+                                            <Text style={{ color: 'white', fontSize: FONT_SIZE.FONT_FOUR, fontWeight: 'bold', marginTop: 10, marginLeft: 10 }}>Recovered</Text>
+                                            <Text style={{ color: 'white', fontSize: FONT_SIZE.FONT_THREE, fontWeight: 'bold', marginLeft: 10, marginBottom: 10 }}>{this.numberWithCommas(countryData.recovered)}</Text>
+                                        </View>
                                         <View style={{ width: "47%", height: 100, borderRadius: 10, backgroundColor: COLOR.YELLOW, marginTop: 30, justifyContent: 'space-between' }}>
                                             <Text style={{ color: 'white', fontSize: FONT_SIZE.FONT_FOUR, fontWeight: 'bold', marginTop: 10, marginLeft: 10 }}>Affected</Text>
                                             <Text style={{ color: 'white', fontSize: FONT_SIZE.FONT_THREE, fontWeight: 'bold', marginLeft: 10, marginBottom: 10 }}>{this.numberWithCommas(countryData.confirmed)}</Text>
-                                        </View>
-                                        <View style={{ width: "47%", height: 100, borderRadius: 10, backgroundColor: COLOR.RED, marginTop: 30, justifyContent: 'space-between' }}>
-                                            <Text style={{ color: 'white', fontSize: FONT_SIZE.FONT_FOUR, fontWeight: 'bold', marginTop: 10, marginLeft: 10 }}>Death</Text>
-                                            <Text style={{ color: 'white', fontSize: FONT_SIZE.FONT_THREE, fontWeight: 'bold', marginLeft: 10, marginBottom: 10 }}>{this.numberWithCommas(countryData.deaths)}</Text>
+
                                         </View>
                                     </View>
                                     <View style={{ marginTop: 30, flexDirection: 'row', marginLeft: 20, marginRight: 20, borderRadius: 30, alignItems: 'center', height: 100, justifyContent: 'space-between' }}>
-                                        <View style={{ width: "30%", height: 100, borderRadius: 10, backgroundColor: COLOR.GREEN, marginTop: 30, justifyContent: 'space-between' }}>
-                                            <Text style={{ color: 'white', fontSize: FONT_SIZE.FONT_FIVE, fontWeight: 'bold', marginTop: 10, marginLeft: 10 }}>Recovered</Text>
-                                            <Text style={{ color: 'white', fontSize: FONT_SIZE.FONT_FOUR, fontWeight: 'bold', marginLeft: 10, marginBottom: 10 }}>{this.numberWithCommas(countryData.recovered)}</Text>
+                                        <View style={{ width: "30%", height: 100, borderRadius: 10, backgroundColor: COLOR.RED, marginTop: 30, justifyContent: 'space-between' }}>
+                                            <Text style={{ color: 'white', fontSize: FONT_SIZE.FONT_FIVE, fontWeight: 'bold', marginTop: 10, marginLeft: 10 }}>Death</Text>
+                                            <Text style={{ color: 'white', fontSize: FONT_SIZE.FONT_FOUR, fontWeight: 'bold', marginLeft: 10, marginBottom: 10 }}>{this.numberWithCommas(countryData.deaths)}</Text>
                                         </View>
                                         <View style={{ width: "30%", height: 100, borderRadius: 10, backgroundColor: COLOR.BLUE, marginTop: 30, justifyContent: 'space-between' }}>
                                             <Text style={{ color: 'white', fontSize: FONT_SIZE.FONT_FIVE, fontWeight: 'bold', marginTop: 10, marginLeft: 10 }}>Active</Text>
@@ -331,16 +351,20 @@ class HomeComponent extends React.Component {
                         animationType="slide"
                         transparent={true}
                         visible={modalVisible}
+                        style={{
+                            marginBottom: 30
+                        }}
                     >
 
                         <View style={styles.modal}>
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                                 <Text style={{ paddingTop: 20, fontSize: FONT_SIZE.FONT_THREE, paddingLeft: 20 }}> Select Country</Text>
-                                <TouchableOpacity onPress={() => { this.setState({ modalVisible: false }) }} style={{ padding: 30 }}>
+                                <TouchableOpacity onPress={() => { this.setState({ modalVisible: false, countryList: this.state.originalCountryList }) }} style={{ padding: 30 }}>
                                     <Image source={closeIcon()} style={{ height: 14, width: 14, resizeMode: 'contain' }} />
                                 </TouchableOpacity>
-
                             </View>
+                            <TextInput style={{ paddingTop: 10, paddingLeft: 30 }} placeholder="Search..." onChangeText={(value) => this.searchCountry(value)} />
+
                             <FlatList
                                 data={countryList}
                                 renderItem={({ item, index }) => (
@@ -369,8 +393,8 @@ const styles = StyleSheet.create({
         paddingBottom: 50
     },
     lowerContainer: {
-        
-        
+
+
     },
     headerContainer: {
         flexDirection: 'row',
@@ -397,7 +421,8 @@ const styles = StyleSheet.create({
     modal: {
         backgroundColor: 'white',
         margin: 30,
-        borderRadius: 20
+        borderRadius: 20,
+        height: Dimensions.get('screen').height - 130
     }
 });
 

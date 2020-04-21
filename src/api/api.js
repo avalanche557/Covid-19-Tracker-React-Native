@@ -40,7 +40,6 @@ export function getSelectedCountry(name) {
         }
     })
     .then(response => {
-        console.log(response)
         if(response.status === 200 && response.data) {
             return response.data[0]
         }
@@ -65,7 +64,6 @@ export function getFlagOfCountry () {
     return axios.get(URL)
     .then(response => {
         if(response.status === 200 && response.data) {
-            console.log(response)
             return response.data
         }
         return 
@@ -112,7 +110,6 @@ export function getCountryDataApi(date, name) {
         }
     })
     .then(response => {
-        console.log('res', response)
         if(response.status === 200 && response.data) {
 
             for(let i = 0 ; i < response.data[0].provinces.length; i++) {
