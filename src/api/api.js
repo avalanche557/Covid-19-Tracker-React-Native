@@ -86,7 +86,7 @@ export function getAllDataForAll(date) {
     })
     .then(response => {
         if(response.status === 200 && response.data) {
-            return response.data[0].recovered
+            return response.data[0]
         }
         return 
     })
@@ -95,7 +95,6 @@ export function getAllDataForAll(date) {
 
 
 export function getCountryDataApi(date, name) {
-    let sum = 0
     const URL = 'https://covid-19-data.p.rapidapi.com/report/country/name';
     return axios.get(URL, {
         headers: {
@@ -111,12 +110,7 @@ export function getCountryDataApi(date, name) {
     })
     .then(response => {
         if(response.status === 200 && response.data) {
-
-            for(let i = 0 ; i < response.data[0].provinces.length; i++) {
-                sum = sum + response.data[0].provinces[i].recovered
-                return sum
-            }
+            return response.data[0]
         }
-        return 
     })
 }

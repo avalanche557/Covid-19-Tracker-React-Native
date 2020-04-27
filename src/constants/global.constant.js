@@ -949,7 +949,7 @@ export const COUNTRY = [
         "code": "GB"
     },
     {
-        "name": "United States",
+        "name": "USA",
         "code": "US"
     },
     {

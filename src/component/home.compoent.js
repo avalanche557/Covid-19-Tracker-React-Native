@@ -8,7 +8,7 @@ import {
     Modal,
     FlatList,
     Dimensions,
-    Platform
+    Platform,KeyEvent
 } from 'react-native';
 import { getTotal, getAllCountry, getFlagOfCountry, getSelectedCountry, getAllDataForAll, getCountryDataApi } from '../api/api';
 import { COLOR, FONT_SIZE, FONT_WEIGHT, COUNTRY } from '../constants/global.constant';
@@ -85,17 +85,24 @@ class HomeComponent extends React.Component {
     getAllDataForDate = async () => {
         const temp = []
         const tempDate = []
+        const graphData = []
         for (let i = 2; i < 6; i++) {
             tempDate.unshift(moment().subtract(i, 'days').format("YYYY-MM-DD"))
             const response = await getAllDataForAll(moment().subtract(i, 'days').format("YYYY-MM-DD"))
-            temp.unshift(parseInt(response))
+            temp.push(response)
         }
+        console.log(temp)
+        let sum = 0;
+        temp.map((item) => {
+            graphData.unshift(item.confirmed)
+        })
+        console.log(graphData)
         this.setState({
             graphDataAll: {
                 labels: tempDate,
                 datasets: [
                     {
-                        data: temp
+                        data: graphData
                     },
                 ],
             }
@@ -104,19 +111,26 @@ class HomeComponent extends React.Component {
 
     getCountryDataForDate = async () => {
         const temp = []
-        const now = moment().format("YYYY-MM-DD");
         const tempDate = []
+        const graphData = []
         for (let i = 2; i < 6; i++) {
             tempDate.unshift(moment().subtract(i, 'days').format("YYYY-MM-DD"))
             const response = await getCountryDataApi(moment().subtract(i, 'days').format("YYYY-MM-DD"), this.state.slectedCountry)
-            temp.unshift(parseInt(response))
+            temp.push(response)
         }
+        temp.map((item) => {
+            let sum = 0;
+            item.provinces.map((item) => {
+                sum = sum + item.confirmed
+            })
+            graphData.unshift(sum)
+        })
         this.setState({
             graphDataCountry: {
                 labels: tempDate,
                 datasets: [
                     {
-                        data: temp
+                        data: graphData
                     },
                 ],
             }
@@ -160,11 +174,11 @@ class HomeComponent extends React.Component {
                 return item.code
             }
         })
-        console.log(countryCode)
         this.setState({
             slectedCountry: name,
             modalVisible: false,
             slectedCountryCode: countryCode[0].code,
+            countryList: this.state.originalCountryList
         }, () => {
             this.getCountryDataForDate()
         })
@@ -180,18 +194,25 @@ class HomeComponent extends React.Component {
         return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     }
 
-    searchCountry = (value) => {
-        console.log(value)
-        data = this.state.countryList;
-        value = value.trim().toLowerCase()
 
-        data = data.filter(l => {
-            return l.toLowerCase().match(value);
-        });
-        this.setState({
-            countryList: data
-        })
-    }
+
+    searchCountry = text => {
+        // console.log(event.nativeEvent.key)
+        // let searchText = this.state.searchText;
+        // if(event.nativeEvent.key !== 'Backspace') {
+        //     searchText = searchText + event.nativeEvent.key
+        // }
+        const newData = this.state.countryList.filter(item => {      
+            const itemData = item.toUpperCase()
+            
+             const textData = text.toUpperCase();
+              
+             return itemData.indexOf(textData) > -1;    
+          });
+          
+          this.setState({ countryList: newData });  
+        
+    };
 
 
 
@@ -282,7 +303,7 @@ class HomeComponent extends React.Component {
                         {active === 'global' ?
                             <View style={styles.lowerContainer}>
                                 <Text style={{ paddingTop: 20, fontSize: FONT_SIZE.FONT_THREE, paddingLeft: 20 }}>
-                                    Daily Recovered Cases
+                                    Confirmed Cases
                                 </Text>
                                 {this.state.graphDataAll.datasets ?
                                     <LineChart
@@ -314,7 +335,7 @@ class HomeComponent extends React.Component {
                             :
                             <View style={styles.lowerContainer}>
                                 <Text style={{ paddingTop: 20, fontSize: FONT_SIZE.FONT_THREE, paddingLeft: 20 }}>
-                                    Daily Recovered Cases
+                                    Confirmed Cases
                                 </Text>
                                 {this.state.graphDataCountry.datasets ?
                                     <LineChart
@@ -363,7 +384,7 @@ class HomeComponent extends React.Component {
                                     <Image source={closeIcon()} style={{ height: 14, width: 14, resizeMode: 'contain' }} />
                                 </TouchableOpacity>
                             </View>
-                            <TextInput style={{ paddingTop: 10, paddingLeft: 30 }} placeholder="Search..." onChangeText={(value) => this.searchCountry(value)} />
+                            <TextInput style={{ paddingTop: 10, paddingLeft: 30 }} placeholder="Search..." onChangeText={text => this.searchCountry(text)} />
 
                             <FlatList
                                 data={countryList}
